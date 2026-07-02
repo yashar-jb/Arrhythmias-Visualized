@@ -151,15 +151,10 @@ Possible future improvements:
 
 ## License
 
-Choose a license before publishing. If you want the project to be freely reusable with minimal restrictions, consider the MIT License.
-
 ```text
-MIT License
+GPL-3.0 license 
 
-Copyright (c) 2026 [Your Name]
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files...
+Copyright (c) 2026 Yashar Jomebozorgi
 ```
 
 ## Citation / Attribution
