@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cardiac Electrophysiology Teaching Tool</title>
+<style>
+  :root{
+    --bg:#0f172a;
+    --panel:#111827;
+    --panel2:#0b1222;
+    --ink:#e5e7eb;
+    --muted:#9ca3af;
+    --line:#334155;
+    --accent:#38bdf8;
+    --accent2:#f59e0b;
+    --danger:#ef4444;
+    --good:#22c55e;
+    --purple:#a78bfa;
+    --atrial:#60a5fa;
+    --nodal:#fbbf24;
+    --vent:#fb7185;
+    --ap:#f97316;
+    --shadow:0 18px 60px rgba(0,0,0,.35);
+    --radius:18px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    background:
+      radial-gradient(circle at 15% 0%, rgba(56,189,248,.18), transparent 32rem),
+      radial-gradient(circle at 95% 10%, rgba(167,139,250,.15), transparent 34rem),
+      linear-gradient(135deg, #020617, var(--bg));
+    color:var(--ink);
+    min-height:100vh;
+  }
+  header{
+    padding:26px clamp(16px,3vw,34px) 12px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:20px;
+  }
+  h1{font-size:clamp(1.45rem,2.5vw,2.35rem); margin:0 0 8px; letter-spacing:-.035em;}
+  .subtitle{color:var(--muted); max-width:980px; line-height:1.45; font-size:.98rem;}
+  .badge{
+    border:1px solid rgba(148,163,184,.28);
+    background:rgba(15,23,42,.7);
+    color:#cbd5e1;
+    padding:8px 12px;
+    border-radius:999px;
+    font-size:.82rem;
+    white-space:nowrap;
+  }
+  main{padding:10px clamp(16px,3vw,34px) 36px;}
+  .toolbar{
+    background:rgba(17,24,39,.82);
+    border:1px solid rgba(148,163,184,.18);
+    border-radius:var(--radius);
+    padding:14px;
+    box-shadow:var(--shadow);
+    backdrop-filter: blur(12px);
+    margin-bottom:16px;
+  }
+  .toolbar-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+  }
+  .controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+  button, select, input[type="range"]{font:inherit;}
+  button{
+    background:#172033;
+    color:var(--ink);
+    border:1px solid rgba(148,163,184,.28);
+    border-radius:12px;
+    padding:9px 12px;
+    cursor:pointer;
+    transition:.15s transform, .15s background, .15s border-color;
+  }
+  button:hover{transform:translateY(-1px); background:#1f2a44; border-color:rgba(56,189,248,.48)}
+  button.primary{background:linear-gradient(135deg,#0284c7,#4f46e5); border-color:transparent;}
+  .pill-grid{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .rhythm-btn{
+    font-size:.83rem;
+    padding:7px 10px;
+    border-radius:999px;
+    background:#111827;
+    color:#d1d5db;
+  }
+  .rhythm-btn.active{
+    color:white;
+    border-color:rgba(56,189,248,.85);
+    box-shadow:0 0 0 2px rgba(56,189,248,.12) inset;
+    background:rgba(14,116,144,.38);
+  }
+  .layout{
+    display:grid;
+    grid-template-columns:minmax(420px, 1.1fr) minmax(340px, .9fr);
+    gap:16px;
+  }
+  @media(max-width:980px){.layout{grid-template-columns:1fr}.badge{white-space:normal}}
+  .card{
+    background:rgba(17,24,39,.86);
+    border:1px solid rgba(148,163,184,.18);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .card h2, .card h3{margin:0; letter-spacing:-.02em;}
+  .card-head{
+    padding:14px 16px;
+    border-bottom:1px solid rgba(148,163,184,.14);
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .card-head small{color:var(--muted); display:block; margin-top:4px; line-height:1.35;}
+  .heart-wrap{padding:10px; position:relative;}
+  svg{display:block; width:100%; height:auto;}
+  #heartSvg{background:radial-gradient(circle at 50% 45%, rgba(15,23,42,.1), rgba(2,6,23,.45)); border-radius:14px;}
+  .anatomy-label{font-size:13px; fill:#dbeafe; paint-order:stroke; stroke:#020617; stroke-width:4px; stroke-linejoin:round;}
+  .micro-label{font-size:11px; fill:#cbd5e1; paint-order:stroke; stroke:#020617; stroke-width:3px;}
+  .chamber{stroke:rgba(226,232,240,.4); stroke-width:1.4;}
+  .heart-outline{fill:rgba(127,29,29,.28); stroke:rgba(248,113,113,.75); stroke-width:3; filter:url(#softGlow)}
+  .vessel{fill:rgba(59,130,246,.16); stroke:rgba(147,197,253,.65); stroke-width:2;}
+  .conduction-path{fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-width:6; opacity:.32;}
+  .path-atrial{stroke:var(--atrial)}
+  .path-nodal{stroke:var(--nodal)}
+  .path-vent{stroke:var(--vent)}
+  .path-ap{stroke:var(--ap); stroke-dasharray:7 8; opacity:.55}
+  .node{stroke:#020617; stroke-width:2; filter:url(#nodeGlow)}
+  .node.sa{fill:var(--good)} .node.av{fill:var(--nodal)} .node.his{fill:#facc15} .node.ectopic{fill:var(--purple)} .node.ventnode{fill:var(--danger)}
+  .activation-dot{filter:url(#dotGlow)}
+  .wavelet{opacity:.85; filter:url(#dotGlow)}
+  #vectorArrow{stroke:#fef08a; stroke-width:7; stroke-linecap:round; marker-end:url(#arrowHead); filter:url(#vectorGlow)}
+  #vectorTrail{fill:none; stroke:#fde68a; stroke-width:2; opacity:.65; stroke-dasharray:5 6;}
+  .vector-origin{fill:#fef3c7; opacity:.95}
+  .delay-ring{fill:none; stroke:#fbbf24; stroke-width:3; opacity:0;}
+  .pulse-ring{animation:nodePulse 1.2s ease-out infinite; transform-origin:center;}
+  @keyframes nodePulse{0%{opacity:.8; r:6}70%{opacity:.02; r:20}100%{opacity:0; r:20}}
+  .info-grid{display:grid; grid-template-columns:1fr; gap:16px; padding:16px;}
+  .status-card{
+    border:1px solid rgba(148,163,184,.16);
+    background:rgba(15,23,42,.65);
+    border-radius:14px;
+    padding:14px;
+  }
+  .mode-title{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;}
+  .mode-title h2{font-size:1.25rem;}
+  .tag{font-size:.72rem; color:#e0f2fe; border:1px solid rgba(56,189,248,.32); background:rgba(12,74,110,.34); padding:5px 8px; border-radius:999px; white-space:nowrap;}
+  .notes{color:#d1d5db; line-height:1.55; margin:0; font-size:.94rem;}
+  .notes b{color:white;}
+  .teaching-list{padding-left:18px; margin:10px 0 0; color:#cbd5e1; line-height:1.45; font-size:.91rem;}
+  .teaching-list li{margin:5px 0;}
+  #ecgSvg, #vcgSvg{background:#07111f; border-radius:12px; border:1px solid rgba(148,163,184,.14);}
+  .ecg-grid minor{stroke:red}
+  .gridline{stroke:rgba(148,163,184,.11); stroke-width:1}.gridline.major{stroke:rgba(148,163,184,.22)}
+  .ecg-line{fill:none; stroke:#34d399; stroke-width:2.8; stroke-linejoin:round; stroke-linecap:round; filter:url(#ecgGlow)}
+  .ecg-label{fill:#9ca3af; font-size:11px}.cursor{stroke:#fef08a; stroke-width:2; opacity:.7}
+  .vcg-axis{stroke:rgba(148,163,184,.28); stroke-width:1.5}.vcg-loop{fill:none; stroke:#fef08a; stroke-width:3; opacity:.95; filter:url(#vectorGlow)}.vcg-loop2{fill:none; stroke:#fb7185; stroke-width:2; opacity:.65}.vcg-dot{fill:#fef3c7; filter:url(#dotGlow)}
+  .metrics{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:12px;}
+  .metric{border:1px solid rgba(148,163,184,.15); border-radius:12px; padding:10px; background:rgba(2,6,23,.24)}
+  .metric span{display:block; color:#94a3b8; font-size:.75rem; margin-bottom:3px}.metric b{font-size:.92rem;}
+  .legend{display:flex; gap:10px; flex-wrap:wrap; color:#cbd5e1; font-size:.8rem; padding:0 16px 16px;}
+  .legend i{display:inline-block; width:10px; height:10px; border-radius:999px; margin-right:5px; vertical-align:-1px;}
+  .note-box{font-size:.82rem; color:#cbd5e1; line-height:1.45; border-top:1px solid rgba(148,163,184,.12); padding:12px 16px; background:rgba(2,6,23,.18)}
+  .tiny{font-size:.78rem;color:#94a3b8;}
+  .toggle-row{display:flex;align-items:center;gap:10px; flex-wrap:wrap; color:#cbd5e1; font-size:.88rem;}
+  input[type="range"]{accent-color:var(--accent); width:140px;}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Interactive Cardiac Conduction & Arrhythmia Vector Teaching Tool</h1>
+    <div class="subtitle">A standalone anatomic-style SVG model for fellows and residents: normal activation, vector-cardiographic direction, and rhythm-mechanism examples. The geometry is intentionally simplified for teaching; it is not a patient-specific diagnostic simulator.</div>
+  </div>
+  <div class="badge">HTML + CSS + JS only · offline-ready</div>
+</header>
+<main>
+  <section class="toolbar">
+    <div class="toolbar-top">
+      <div class="controls">
+        <button id="playBtn" class="primary">Pause</button>
+        <button id="resetBtn">Reset</button>
+        <div class="toggle-row"><span>Speed</span><input id="speed" type="range" min="0.45" max="2.2" value="1" step="0.05"><span id="speedVal">1.00×</span></div>
+      </div>
+      <div class="tiny">Tip: choose a rhythm below; watch the activation source, AV node behavior, QRS width, and VCG vector.</div>
+    </div>
+    <div id="rhythmButtons" class="pill-grid" aria-label="Rhythm selector"></div>
+  </section>
+
+  <section class="layout">
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>Animated anatomic framework</h2>
+          <small>Stylized frontal cardiac outline with conduction tissue, accessory pathway, ectopic foci, re-entry loops, and instantaneous net vector.</small>
+        </div>
+        <span class="tag" id="mechanismTag">Normal sequence</span>
+      </div>
+      <div class="heart-wrap">
+        <svg id="heartSvg" viewBox="0 0 800 650" role="img" aria-label="Anatomic cardiac conduction animation">
+          <defs>
+            <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <filter id="nodeGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <filter id="dotGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <filter id="vectorGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <marker id="arrowHead" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 12 6 L 0 12 z" fill="#fef08a"/></marker>
+            <linearGradient id="heartGrad" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#1d4ed8" stop-opacity=".22"/><stop offset=".48" stop-color="#7f1d1d" stop-opacity=".24"/><stop offset="1" stop-color="#be123c" stop-opacity=".18"/></linearGradient>
+          </defs>
+
+          <!-- anatomic context: vessels -->
+          <path class="vessel" d="M286 52 C270 98 286 126 306 162 L348 151 C318 113 328 82 350 48 C330 60 309 60 286 52Z" />
+          <path class="vessel" d="M250 192 C188 170 126 182 79 220 C138 214 197 235 245 264Z" />
+          <path class="vessel" d="M543 178 C610 146 677 158 727 207 C655 205 600 232 555 267Z" />
+          <path class="vessel" d="M440 57 C498 84 512 145 483 205 L436 182 C457 134 442 98 406 71Z" />
+          <text x="306" y="44" class="micro-label">SVC</text>
+          <text x="458" y="50" class="micro-label">Aorta / PA</text>
+          <text x="101" y="213" class="micro-label">Pulmonary veins</text>
+          <text x="613" y="203" class="micro-label">Pulmonary veins</text>
+
+          <!-- main heart silhouette and chambers -->
+          <path class="heart-outline" fill="url(#heartGrad)" d="M399 103
+            C340 80 268 103 226 157
+            C164 237 186 350 250 441
+            C300 512 359 575 400 609
+            C442 575 512 509 556 429
+            C615 322 626 220 571 158
+            C528 109 457 80 399 103Z" />
+          <path class="chamber" fill="rgba(37,99,235,.18)" d="M387 124 C329 101 257 128 228 190 C203 244 210 302 246 343 C285 313 317 296 356 293 C360 232 368 176 387 124Z" />
+          <path class="chamber" fill="rgba(96,165,250,.13)" d="M409 124 C471 101 543 129 571 191 C594 244 586 302 548 346 C505 314 470 296 430 294 C426 232 421 176 409 124Z" />
+          <path class="chamber" fill="rgba(248,113,113,.17)" d="M248 352 C286 319 323 306 362 310 C371 407 383 498 400 591 C347 546 285 485 248 424 C235 401 231 374 248 352Z" />
+          <path class="chamber" fill="rgba(244,63,94,.20)" d="M548 352 C508 319 470 306 429 310 C421 409 411 501 400 591 C460 542 515 486 552 420 C565 396 567 373 548 352Z" />
+          <path d="M397 118 C383 207 381 314 399 600" stroke="rgba(226,232,240,.28)" stroke-width="2" fill="none" stroke-dasharray="6 7"/>
+          <text x="238" y="180" class="anatomy-label">Right atrium</text>
+          <text x="475" y="180" class="anatomy-label">Left atrium</text>
+          <text x="258" y="443" class="anatomy-label">Right ventricle</text>
+          <text x="463" y="443" class="anatomy-label">Left ventricle</text>
+
+          <!-- hidden/visible conduction paths -->
+          <path id="pSA_RA" class="conduction-path path-atrial" d="M302 142 C257 176 244 220 274 258 C291 278 316 287 339 293" />
+          <path id="pSA_LA" class="conduction-path path-atrial" d="M306 142 C362 114 423 137 463 185 C486 213 494 242 484 271" />
+          <path id="pAtrFlutter" class="conduction-path path-atrial" d="M281 178 C229 230 231 309 288 349 C345 388 405 352 394 291 C384 232 333 194 281 178Z" />
+          <path id="pLAFlutter" class="conduction-path path-atrial" d="M489 174 C550 232 544 313 486 349 C429 385 387 340 408 285 C429 230 449 194 489 174Z" />
+          <path id="pAVHis" class="conduction-path path-nodal" d="M347 294 C359 316 372 335 392 354" />
+          <path id="pHisLBB" class="conduction-path path-vent" d="M392 354 C423 382 444 418 457 470 C468 516 455 552 424 584" />
+          <path id="pHisRBB" class="conduction-path path-vent" d="M392 354 C363 384 344 425 331 480 C320 529 338 560 376 585" />
+          <path id="pPurkinjeLV" class="conduction-path path-vent" d="M424 584 C485 551 532 496 551 426" />
+          <path id="pPurkinjeRV" class="conduction-path path-vent" d="M376 585 C310 552 265 501 246 428" />
+          <path id="pAccessory" class="conduction-path path-ap" d="M492 244 C524 292 524 350 500 405" />
+          <path id="pAccessoryR" class="conduction-path path-ap" d="M287 244 C250 295 256 361 292 421" />
+          <path id="pAVNRT" class="conduction-path path-nodal" d="M324 269 C294 303 309 351 352 356 C401 362 418 303 377 273 C355 257 337 255 324 269Z" />
+          <path id="pAVRT" class="conduction-path path-ap" d="M347 294 C378 354 447 378 500 405 C523 352 520 293 492 244 C442 245 384 256 347 294Z" />
+          <path id="pVT_LV" class="conduction-path path-vent" d="M503 468 C464 425 402 426 358 471 C316 515 338 565 400 584 C467 562 535 517 503 468Z" />
+          <path id="pVT_RV" class="conduction-path path-vent" d="M296 456 C349 416 420 428 462 479 C498 524 467 575 400 589 C332 565 263 511 296 456Z" />
+
+          <!-- nodes -->
+          <circle id="saNode" class="node sa" cx="302" cy="142" r="10"/><circle class="delay-ring pulse-ring" cx="302" cy="142" r="8"/>
+          <circle id="avNode" class="node av" cx="347" cy="294" r="10"/>
+          <circle id="hisNode" class="node his" cx="392" cy="354" r="7"/>
+          <circle id="ectRA" class="node ectopic" cx="270" cy="210" r="7" opacity=".8"/>
+          <circle id="ectLA" class="node ectopic" cx="493" cy="214" r="7" opacity=".8"/>
+          <circle id="ectLowA" class="node ectopic" cx="410" cy="255" r="6" opacity=".7"/>
+          <circle id="ectV" class="node ventnode" cx="505" cy="465" r="8" opacity=".85"/>
+          <circle id="ectV2" class="node ventnode" cx="294" cy="458" r="8" opacity=".65"/>
+
+          <text x="314" y="132" class="micro-label">SA</text>
+          <text x="360" y="292" class="micro-label">AV</text>
+          <text x="404" y="358" class="micro-label">His</text>
+          <text x="507" y="247" class="micro-label">Accessory</text>
+          <text x="452" y="504" class="micro-label">Purkinje</text>
+
+          <!-- dynamic layer -->
+          <g id="dynamicLayer"></g>
+          <line id="vectorArrow" x1="400" y1="360" x2="400" y2="360" opacity="0" />
+          <path id="vectorTrail" d="" opacity="0" />
+          <circle class="vector-origin" cx="400" cy="360" r="4" opacity=".8"/>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--good)"></i>SA node</span>
+        <span><i style="background:var(--nodal)"></i>AV/His</span>
+        <span><i style="background:var(--atrial)"></i>Atrial activation</span>
+        <span><i style="background:var(--vent)"></i>Ventricular activation</span>
+        <span><i style="background:var(--ap)"></i>Accessory pathway</span>
+        <span><i style="background:#fef08a"></i>Net vector</span>
+      </div>
+      <div class="note-box">Vector convention shown here is a simplified frontal-plane teaching vector: atrial depolarization is usually inferior/leftward; ventricular depolarization is dominated by left ventricular mass and travels generally inferior-leftward before terminal superior/rightward forces. Pre-excitation, ventricular rhythms, and fibrillation distort or abolish that organized loop.</div>
+    </section>
+
+    <aside class="card">
+      <div class="card-head">
+        <div>
+          <h2>Rhythm strip & vector loop</h2>
+          <small>Schematic ECG/VCG patterns are deliberately exaggerated to make mechanism visible.</small>
+        </div>
+      </div>
+      <div class="info-grid">
+        <div class="status-card">
+          <div class="mode-title"><h2 id="modeName">Normal sinus activation</h2><span class="tag" id="rateTag">60–100 bpm</span></div>
+          <p id="modeDesc" class="notes"></p>
+          <ul id="teachingList" class="teaching-list"></ul>
+          <div class="metrics">
+            <div class="metric"><span>Origin</span><b id="originMetric">SA node</b></div>
+            <div class="metric"><span>QRS</span><b id="qrsMetric">Narrow</b></div>
+            <div class="metric"><span>AV relationship</span><b id="avMetric">1:1</b></div>
+            <div class="metric"><span>Vector behavior</span><b id="vectorMetric">Organized</b></div>
+          </div>
+        </div>
+        <div>
+          <svg id="ecgSvg" viewBox="0 0 720 220" role="img" aria-label="schematic ECG rhythm strip">
+            <defs><filter id="ecgGlow" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+            <g id="ecgGrid"></g>
+            <path id="ecgPath" class="ecg-line" d="" />
+            <line id="ecgCursor" class="cursor" x1="0" y1="18" x2="0" y2="204" />
+            <text x="12" y="20" class="ecg-label" id="ecgCaption">Lead II-like rhythm strip</text>
+          </svg>
+        </div>
+        <div>
+          <svg id="vcgSvg" viewBox="0 0 360 280" role="img" aria-label="schematic vector cardiography loop">
+            <line class="vcg-axis" x1="180" y1="20" x2="180" y2="260"/><line class="vcg-axis" x1="35" y1="140" x2="325" y2="140"/>
+            <text x="187" y="32" class="ecg-label">Superior</text><text x="187" y="257" class="ecg-label">Inferior</text><text x="38" y="132" class="ecg-label">Rightward</text><text x="282" y="132" class="ecg-label">Leftward</text>
+            <path id="vcgLoop" class="vcg-loop" d=""/><path id="vcgLoop2" class="vcg-loop2" d=""/><circle id="vcgDot" class="vcg-dot" cx="180" cy="140" r="5"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+  </section>
+</main>
+
+<script>
+(function(){
+  const svgNS = "http://www.w3.org/2000/svg";
+  const dynamic = document.getElementById('dynamicLayer');
+  const vectorArrow = document.getElementById('vectorArrow');
+  const vectorTrail = document.getElementById('vectorTrail');
+  const playBtn = document.getElementById('playBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const speedSlider = document.getElementById('speed');
+  const speedVal = document.getElementById('speedVal');
+  const rhythmButtons = document.getElementById('rhythmButtons');
+  const ecgPath = document.getElementById('ecgPath');
+  const ecgCursor = document.getElementById('ecgCursor');
+  const ecgCaption = document.getElementById('ecgCaption');
+  const vcgLoop = document.getElementById('vcgLoop');
+  const vcgLoop2 = document.getElementById('vcgLoop2');
+  const vcgDot = document.getElementById('vcgDot');
+  const p = id => document.getElementById(id);
+
+  const pathIds = ['pSA_RA','pSA_LA','pAtrFlutter','pLAFlutter','pAVHis','pHisLBB','pHisRBB','pPurkinjeLV','pPurkinjeRV','pAccessory','pAccessoryR','pAVNRT','pAVRT','pVT_LV','pVT_RV'];
+  const paths = Object.fromEntries(pathIds.map(id=>[id,p(id)]));
+
+  const modes = {
+    normal: {
+      label:'Normal sinus', tag:'Normal sequence', rate:'60–100 bpm', category:'physiology',
+      desc:'Sinus impulse begins in the high right atrium, spreads through both atria, pauses at the AV node, then rapidly conducts through His–bundle branches–Purkinje system. The dominant QRS vector points inferiorly and leftward because left ventricular activation/mass dominates.',
+      bullets:['P wave precedes every QRS with stable PR interval.','AV nodal delay lets atrial contraction precede ventricular systole.','VCG loop is organized: small atrial loop, dominant QRS loop, repolarization loop.'],
+      origin:'SA node', qrs:'Narrow', av:'1:1, stable PR', vector:'Inferior-leftward QRS', ecg:'normal', vcg:'normal', pattern:'normal'
+    },
+    pac:{
+      label:'PAC', tag:'Premature atrial beat', rate:'Premature atrial ectopy',
+      desc:'A premature atrial complex arises outside the SA node. Atria activate from an eccentric focus, often producing a differently shaped P wave. If the AV node has recovered, the impulse conducts with a narrow QRS; if very early, it can be blocked or aberrantly conducted.',
+      bullets:['Premature abnormal P wave; QRS usually narrow.','May reset the sinus node and create a non-compensatory pause.','Vector begins from the ectopic atrial focus rather than the high right atrium.'],
+      origin:'Ectopic atrial focus', qrs:'Usually narrow', av:'Conducted or blocked', vector:'Eccentric atrial vector', ecg:'pac', vcg:'pac', pattern:'pac'
+    },
+    af:{
+      label:'Atrial fibrillation', tag:'Chaotic atrial activation', rate:'Atrial 350–600/min; irregular ventricular',
+      desc:'Multiple wandering atrial wavelets and/or focal triggers, classically around pulmonary veins, create disorganized atrial activation. The AV node filters these impulses irregularly, producing an irregularly irregular ventricular rhythm unless another pacemaker dominates.',
+      bullets:['No organized P waves; fibrillatory baseline.','Irregularly irregular RR intervals.','Atrial vector is fragmented; QRS vector remains organized if conduction is through His–Purkinje.'],
+      origin:'Multiple atrial wavelets', qrs:'Narrow unless aberrancy/pre-excitation', av:'Irregular AV filtering', vector:'Chaotic atrial, organized QRS', ecg:'af', vcg:'af', pattern:'af'
+    },
+    flutter:{
+      label:'Atrial flutter', tag:'Macroreentry', rate:'Atrial ≈250–350/min',
+      desc:'Atrial flutter is usually a macroreentrant circuit, often cavotricuspid-isthmus dependent around the tricuspid annulus in the right atrium. Ventricular rate depends on AV block ratio, commonly 2:1 or variable.',
+      bullets:['Sawtooth flutter waves, especially inferior leads.','Atrial activation is organized but very rapid.','Vector rotates repeatedly around the atrial reentry circuit.'],
+      origin:'Right atrial macroreentry', qrs:'Usually narrow', av:'Often 2:1 or variable block', vector:'Rotating atrial vector', ecg:'flutter', vcg:'flutter', pattern:'flutter'
+    },
+    mfat:{
+      label:'MFAT / MAT', tag:'Multifocal atrial tachycardia', rate:'Atrial >100/min, irregular',
+      desc:'Multifocal atrial tachycardia arises from at least three atrial pacemaker sites. The atrial vector and P-wave morphology shift beat-to-beat, with irregular PP, PR, and RR intervals.',
+      bullets:['At least three distinct P-wave morphologies.','Irregularly irregular rhythm but visible P waves separate it from AF.','Often associated clinically with pulmonary disease, hypoxemia, or adrenergic stress.'],
+      origin:'Multiple atrial foci', qrs:'Usually narrow', av:'Variable PR, usually 1:1', vector:'Beat-to-beat atrial shifts', ecg:'mfat', vcg:'mfat', pattern:'mfat'
+    },
+    avnrtTypical:{
+      label:'AVNRT — typical slow–fast', tag:'Nodal reentry', rate:'Regular 140–250/min',
+      desc:'Typical AVNRT uses slow antegrade conduction down the slow pathway and rapid retrograde conduction up the fast pathway. Atria and ventricles activate nearly simultaneously, so retrograde P waves are hidden in or just after the QRS.',
+      bullets:['Short RP tachycardia; pseudo-r′ in V1 or pseudo-S in inferior leads may appear.','Narrow QRS unless bundle branch aberrancy.','Circuit is centered at the AV nodal inputs, not a large atrial macroreentry loop.'],
+      origin:'AV nodal dual-pathway circuit', qrs:'Narrow', av:'Near-simultaneous A/V', vector:'Compact nodal loop', ecg:'avnrtTypical', vcg:'nodal', pattern:'avnrtTypical'
+    },
+    avnrtAtypical:{
+      label:'AVNRT — atypical fast–slow', tag:'Long-RP nodal reentry', rate:'Regular 120–220/min',
+      desc:'Atypical AVNRT often conducts antegrade over the fast pathway and retrograde over the slow pathway, producing a longer RP interval with visible retrograde P waves after the QRS.',
+      bullets:['Long-RP narrow-complex tachycardia.','Retrograde P waves often appear before the next QRS.','Mechanistic direction is reversed compared with typical slow–fast AVNRT.'],
+      origin:'AV nodal dual-pathway circuit', qrs:'Narrow', av:'Long RP', vector:'Compact reversed loop', ecg:'avnrtAtypical', vcg:'nodalReverse', pattern:'avnrtAtypical'
+    },
+    avrtOrtho:{
+      label:'AVRT — orthodromic', tag:'Accessory-pathway reentry', rate:'Regular 150–250/min',
+      desc:'Orthodromic AVRT conducts antegrade through the AV node/His–Purkinje system and returns retrograde through an accessory pathway. Because ventricular activation uses His–Purkinje, QRS is typically narrow.',
+      bullets:['Narrow-complex reentry tachycardia.','Retrograde P wave often visible after QRS.','Circuit includes atrium, AV node, ventricle, and accessory pathway.'],
+      origin:'AV node down, AP up', qrs:'Narrow', av:'1:1 reentry', vector:'Normal QRS, retrograde atrial limb', ecg:'avrtOrtho', vcg:'avrtOrtho', pattern:'avrtOrtho'
+    },
+    avrtAnti:{
+      label:'AVRT — antidromic', tag:'Pre-excited reentry', rate:'Regular 150–250/min',
+      desc:'Antidromic AVRT conducts antegrade down the accessory pathway and returns retrograde through the AV node. Ventricles activate outside the His–Purkinje system first, so QRS is wide and the initial vector is eccentric.',
+      bullets:['Regular wide-complex tachycardia.','Can mimic VT; clinical context and EP maneuvers matter.','Vector begins near the ventricular insertion of the accessory pathway.'],
+      origin:'AP down, AV node up', qrs:'Wide', av:'1:1 reentry', vector:'Eccentric pre-excited QRS', ecg:'avrtAnti', vcg:'preexcited', pattern:'avrtAnti'
+    },
+    wpw:{
+      label:'WPW pattern', tag:'Sinus with pre-excitation', rate:'Sinus rate',
+      desc:'In Wolff–Parkinson–White pattern, sinus atrial activation conducts through both the AV node and an accessory pathway. Early ventricular myocardial activation creates a delta wave, short PR interval, and altered initial QRS vector.',
+      bullets:['Short PR, slurred delta wave, wider QRS.','The first ventricular vector points away from the accessory-pathway insertion.','Risk becomes critical when AF conducts rapidly over a pathway with short refractory period.'],
+      origin:'SA + accessory pathway', qrs:'Delta/wide', av:'Fusion AV + AP', vector:'Early eccentric delta vector', ecg:'wpw', vcg:'preexcited', pattern:'wpw'
+    },
+    afwpw:{
+      label:'AF + WPW', tag:'Pre-excited AF', rate:'Very rapid, irregular',
+      desc:'Atrial fibrillation in the presence of an antegrade-conducting accessory pathway can bypass AV nodal filtering. The result may be very rapid, irregular, variably wide pre-excited complexes with changing vectors and potential degeneration to VF.',
+      bullets:['Irregular wide-complex tachycardia with beat-to-beat QRS variation.','Avoid AV-nodal blockers in unstable or clearly pre-excited AF teaching scenarios; urgent cardioversion if unstable.','Vector is irregular because variable fusion/pre-excitation changes each beat.'],
+      origin:'AF wavelets + accessory pathway', qrs:'Irregular wide/variable', av:'AP bypasses AV filter', vector:'Irregular pre-excited vectors', ecg:'afwpw', vcg:'afwpw', pattern:'afwpw'
+    },
+    vtMono:{
+      label:'VT — monomorphic', tag:'Ventricular tachycardia', rate:'Regular wide-complex',
+      desc:'Monomorphic VT arises from a stable ventricular focus or reentry circuit. Ventricular activation spreads cell-to-cell outside the normal His–Purkinje sequence, creating wide QRS complexes with consistent morphology and a stable abnormal vector.',
+      bullets:['Regular wide-complex tachycardia with uniform QRS morphology.','AV dissociation, capture beats, or fusion beats strongly support VT.','Vector points away from the ventricular exit site and remains fairly stable beat to beat.'],
+      origin:'Ventricular focus/reentry', qrs:'Wide, uniform', av:'Often AV dissociation', vector:'Stable abnormal QRS vector', ecg:'vtMono', vcg:'vtMono', pattern:'vtMono'
+    },
+    vtPoly:{
+      label:'VT — polymorphic', tag:'Changing ventricular vector', rate:'Rapid, variable wide-complex',
+      desc:'Polymorphic VT has beat-to-beat changes in QRS morphology and axis, reflecting shifting activation vectors. Torsades de pointes is a classic pause-dependent form in prolonged QT, with apparent twisting around the baseline.',
+      bullets:['Wide complexes with continuously changing axis/morphology.','VCG loop changes orientation every beat.','Clinical urgency is high; may degenerate into VF.'],
+      origin:'Shifting ventricular activation', qrs:'Wide, changing morphology', av:'Usually dissociated', vector:'Rotating/changing QRS vector', ecg:'vtPoly', vcg:'vtPoly', pattern:'vtPoly'
+    },
+    vfCoarse:{
+      label:'VF — coarse', tag:'Disorganized ventricular activation', rate:'No organized rhythm',
+      desc:'Ventricular fibrillation is chaotic ventricular activation without coordinated mechanical output. Coarse VF has larger amplitude undulations; there is no stable QRS complex, no meaningful AV relationship, and no coherent net depolarization vector.',
+      bullets:['No organized QRS complexes.','Vector loop collapses into chaotic wandering rather than a reproducible loop.','Clinically this is a cardiac arrest rhythm requiring immediate defibrillation and resuscitation.'],
+      origin:'Multiple ventricular wavelets', qrs:'None organized', av:'None', vector:'No stable vector', ecg:'vfCoarse', vcg:'vf', pattern:'vfCoarse'
+    },
+    vfFine:{
+      label:'VF — fine', tag:'Low-amplitude VF', rate:'No organized rhythm',
+      desc:'Fine VF is lower-amplitude chaotic ventricular activation and can resemble asystole if gain is inadequate. It still represents disorganized ventricular electrical activity with no effective cardiac output.',
+      bullets:['Low-amplitude chaotic baseline; no organized QRS.','No reproducible VCG loop.','The terms monomorphic/polymorphic are used for VT; VF is better described as coarse or fine.'],
+      origin:'Multiple ventricular wavelets', qrs:'None organized', av:'None', vector:'No stable vector', ecg:'vfFine', vcg:'vfFine', pattern:'vfFine'
+    }
+  };
+
+  const order = ['normal','pac','af','flutter','mfat','avnrtTypical','avnrtAtypical','avrtOrtho','avrtAnti','wpw','afwpw','vtMono','vtPoly','vfCoarse','vfFine'];
+  let active = 'normal';
+  let running = true;
+  let speed = 1;
+  let start = performance.now();
+  let lastWaveletSeed = 0;
+  let particles = [];
+
+  function makeButtons(){
+    order.forEach(k=>{
+      const b = document.createElement('button');
+      b.className = 'rhythm-btn' + (k===active?' active':'');
+      b.textContent = modes[k].label;
+      b.addEventListener('click',()=>setMode(k));
+      rhythmButtons.appendChild(b);
+    });
+  }
+
+  function setMode(k){
+    active=k; start=performance.now(); lastWaveletSeed=0; clearDynamic(); updateText(); updateButtons(); drawECG(); drawVCG(0); setPathEmphasis();
+  }
+  function updateButtons(){[...rhythmButtons.children].forEach((b,i)=>b.classList.toggle('active', order[i]===active));}
+  function updateText(){
+    const m=modes[active];
+    p('modeName').textContent=m.label; p('mechanismTag').textContent=m.tag; p('rateTag').textContent=m.rate; p('modeDesc').textContent=m.desc;
+    p('originMetric').textContent=m.origin; p('qrsMetric').textContent=m.qrs; p('avMetric').textContent=m.av; p('vectorMetric').textContent=m.vector;
+    const ul=p('teachingList'); ul.innerHTML=''; m.bullets.forEach(x=>{const li=document.createElement('li'); li.textContent=x; ul.appendChild(li);});
+  }
+
+  function setPathEmphasis(){
+    pathIds.forEach(id=>{ paths[id].style.opacity = .18; paths[id].style.strokeWidth = 5; });
+    const sets = {
+      normal:['pSA_RA','pSA_LA','pAVHis','pHisLBB','pHisRBB','pPurkinjeLV','pPurkinjeRV'],
+      pac:['pSA_RA','pSA_LA','pAVHis','pHisLBB','pHisRBB','pPurkinjeLV','pPurkinjeRV'],
+      af:['pSA_RA','pSA_LA','pAVHis','pHisLBB','pHisRBB','pPurkinjeLV','pPurkinjeRV'],
+      flutter:['pAtrFlutter','pAVHis','pHisLBB','pHisRBB','pPurkinjeLV','pPurkinjeRV'],
+      mfat:['pSA_RA','pSA_LA','pAVHis','pHisLBB','pHisRBB','pPurkinjeLV','pPurkinjeRV'],
+      avnrtTypical:['pAVNRT','pAVHis','pHisLBB','pHisRBB'], avnrtAtypical:['pAVNRT','pAVHis','pHisLBB','pHisRBB'],
+      avrtOrtho:['pAVRT','pAVHis','pHisLBB','pHisRBB','pAccessory'], avrtAnti:['pAVRT','pAccessory','pAVHis'],
+      wpw:['pSA_RA','pSA_LA','pAVHis','pHisLBB','pHisRBB','pAccessory'], afwpw:['pSA_RA','pSA_LA','pAccessory','pAccessoryR','pAVHis'],
+      vtMono:['pVT_LV'], vtPoly:['pVT_LV','pVT_RV'], vfCoarse:['pVT_LV','pVT_RV'], vfFine:['pVT_LV','pVT_RV']
+    };
+    (sets[active]||sets.normal).forEach(id=>{paths[id].style.opacity=.72; paths[id].style.strokeWidth=7;});
+  }
+
+  function clearDynamic(){ dynamic.innerHTML=''; particles=[]; vectorTrail.setAttribute('d',''); }
+  function dot(color='#fde047', r=7){
+    const c=document.createElementNS(svgNS,'circle'); c.setAttribute('r',r); c.setAttribute('fill',color); c.setAttribute('class','activation-dot'); c.setAttribute('opacity','.96'); dynamic.appendChild(c); return c;
+  }
+  function ring(x,y,color='#fde047',r=8){
+    const c=document.createElementNS(svgNS,'circle'); c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',r); c.setAttribute('fill','none'); c.setAttribute('stroke',color); c.setAttribute('stroke-width','3'); c.setAttribute('opacity','.6'); dynamic.appendChild(c); return c;
+  }
+  function positionOn(pathId, frac){
+    const path=paths[pathId]; const L=path.getTotalLength(); return path.getPointAtLength(Math.max(0,Math.min(1,frac))*L);
+  }
+  function addPathParticle(pathId, frac, color, r=7){
+    const pt=positionOn(pathId,frac); const c=dot(color,r); c.setAttribute('cx',pt.x); c.setAttribute('cy',pt.y); return c;
+  }
+  function seqParticle(pathId, phase, start, dur, color, r=7){
+    if(phase<start || phase>start+dur) return;
+    const f=(phase-start)/dur; addPathParticle(pathId,f,color,r);
+  }
+  function loopParticle(pathId, t, color, r=6, offset=0){ addPathParticle(pathId,(t+offset)%1,color,r); }
+
+  function setVector(x2,y2,opacity=1){
+    vectorArrow.setAttribute('x1',400); vectorArrow.setAttribute('y1',360); vectorArrow.setAttribute('x2',x2); vectorArrow.setAttribute('y2',y2); vectorArrow.setAttribute('opacity',opacity);
+  }
+  function vectorFromAngle(angleDeg,len,op=1){
+    const a=(angleDeg-90)*Math.PI/180; // 0 deg = superior, 90 = leftward-ish in screen mapping? custom
+    const x=400+Math.cos(a)*len; const y=360+Math.sin(a)*len; setVector(x,y,op);
+  }
+  function trail(points){
+    if(!points.length){vectorTrail.setAttribute('opacity',0); return;}
+    vectorTrail.setAttribute('d','M '+points.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L ')); vectorTrail.setAttribute('opacity',.6);
+  }
+
+  function animateNormal(phase){
+    seqParticle('pSA_RA',phase,0.02,.22,'#60a5fa'); seqParticle('pSA_LA',phase,0.02,.28,'#60a5fa');
+    if(phase>.27 && phase<.42){ const rr=ring(347,294,'#fbbf24',7+35*(phase-.27)/.15); rr.setAttribute('opacity',.45*(1-(phase-.27)/.15)); }
+    seqParticle('pAVHis',phase,.42,.10,'#fbbf24'); seqParticle('pHisLBB',phase,.51,.16,'#fb7185'); seqParticle('pHisRBB',phase,.51,.16,'#fb7185'); seqParticle('pPurkinjeLV',phase,.64,.16,'#fb7185'); seqParticle('pPurkinjeRV',phase,.64,.16,'#fb7185');
+    if(phase<.32) vectorFromAngle(150, 45+40*phase/.32, .65);
+    else if(phase<.82) vectorFromAngle(135+18*Math.sin(phase*6), 55+120*Math.sin(Math.PI*(phase-.32)/.5), 1);
+    else vectorFromAngle(65, 60*(1-(phase-.82)/.18), .5);
+  }
+  function animatePAC(phase){
+    animateNormal((phase*.75)%1);
+    if(phase>.52){
+      const ph=(phase-.52)/.33;
+      if(ph<1){
+        const source = phase<.70 ? ['pSA_LA','#a78bfa'] : ['pSA_RA','#a78bfa'];
+        seqParticle(source[0],ph,0,.35,source[1],8); seqParticle('pAVHis',ph,.35,.12,'#fbbf24'); seqParticle('pHisLBB',ph,.46,.18,'#fb7185'); seqParticle('pHisRBB',ph,.46,.18,'#fb7185');
+        vectorFromAngle(220-90*ph, 80, .9);
+      }
+    }
+  }
+  function randomWavelets(t, atriaOnly=true, count=18, amp=1){
+    const seed = Math.floor(t*28);
+    if(seed!==lastWaveletSeed){ lastWaveletSeed=seed; }
+    for(let i=0;i<count;i++){
+      const x = 235 + ((Math.sin(seed*12.989+i*78.23)*43758.5453)%1+1)%1*325;
+      const y = 145 + ((Math.sin(seed*7.111+i*34.17)*19341.17)%1+1)%1*(atriaOnly?160:390);
+      const c=dot(i%3?'#60a5fa':'#a78bfa', 2.5+3*amp*((i%5)/5)); c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('opacity',.45+.3*((i%4)/4));
+    }
+  }
+  function animateAF(phase, t){
+    randomWavelets(t,true,22,1);
+    // Irregular conducted QRS bursts
+    const beats=[.10,.31,.47,.73,.88];
+    beats.forEach((b,i)=>{ let d=(phase-b+1)%1; if(d<.17){ seqParticle('pAVHis',d,0,.04,'#fbbf24'); seqParticle('pHisLBB',d,.03,.08,'#fb7185'); seqParticle('pHisRBB',d,.03,.08,'#fb7185'); vectorFromAngle(130+i*5, 80+60*Math.sin(Math.PI*d/.17), .9); }});
+  }
+  function animateFlutter(phase){
+    loopParticle('pAtrFlutter',phase*3.8,'#60a5fa',7); loopParticle('pAtrFlutter',phase*3.8,'#60a5fa',6,.33); loopParticle('pAtrFlutter',phase*3.8,'#60a5fa',6,.66);
+    if((phase*2)%1 < .28){ const d=(phase*2)%1; seqParticle('pAVHis',d,0,.06,'#fbbf24'); seqParticle('pHisLBB',d,.04,.12,'#fb7185'); seqParticle('pHisRBB',d,.04,.12,'#fb7185'); }
+    vectorFromAngle(180+100*Math.sin(phase*2*Math.PI*3.8),75,.85);
+  }
+  function animateMFAT(phase){
+    const beat = Math.floor(phase*5); const d=(phase*5)%1;
+    const focus = beat%3===0?['pSA_RA','#a78bfa',270,210,210]:beat%3===1?['pSA_LA','#60a5fa',493,214,115]:['pSA_LA','#f472b6',410,255,250];
+    ring(focus[2],focus[3],focus[1],9+20*d).setAttribute('opacity',.3*(1-d));
+    seqParticle(focus[0],d,0,.28,focus[1],7); seqParticle('pAVHis',d,.28,.08,'#fbbf24'); seqParticle('pHisLBB',d,.36,.13,'#fb7185'); seqParticle('pHisRBB',d,.36,.13,'#fb7185');
+    vectorFromAngle(focus[4]-80*d,65+45*Math.sin(Math.PI*d),.9);
+  }
+  function animateAVNRT(phase, reverse=false){
+    const cyc=(phase*2.6)%1;
+    loopParticle('pAVNRT', reverse?1-cyc:cyc, '#fbbf24',7);
+    if(cyc<.24){ seqParticle('pAVHis',cyc,0,.05,'#fbbf24'); seqParticle('pHisLBB',cyc,.04,.10,'#fb7185'); seqParticle('pHisRBB',cyc,.04,.10,'#fb7185'); }
+    if(cyc>.12 && cyc<.42){ seqParticle('pSA_RA',reverse?1-cyc:cyc,.12,.30,'#60a5fa',5); seqParticle('pSA_LA',reverse?1-cyc:cyc,.12,.30,'#60a5fa',5); }
+    vectorFromAngle(reverse?60:140,80+30*Math.sin(cyc*2*Math.PI),.95);
+  }
+  function animateAVRT(phase, anti=false){
+    const cyc=(phase*2.25)%1;
+    loopParticle('pAVRT', anti?1-cyc:cyc, anti?'#f97316':'#fbbf24',7);
+    if(!anti){
+      if(cyc<.22){ seqParticle('pAVHis',cyc,0,.05,'#fbbf24'); seqParticle('pHisLBB',cyc,.04,.10,'#fb7185'); seqParticle('pHisRBB',cyc,.04,.10,'#fb7185'); }
+      vectorFromAngle(135,100,.9);
+    } else {
+      if(cyc<.25){ seqParticle('pAccessory',cyc,0,.14,'#f97316',8); seqParticle('pVT_LV',cyc,.12,.20,'#fb7185',7); }
+      vectorFromAngle(235,130,.95);
+    }
+  }
+  function animateWPW(phase){
+    seqParticle('pSA_RA',phase,0.02,.20,'#60a5fa'); seqParticle('pSA_LA',phase,0.02,.24,'#60a5fa');
+    seqParticle('pAccessory',phase,.18,.20,'#f97316',8); seqParticle('pAVHis',phase,.32,.08,'#fbbf24'); seqParticle('pHisLBB',phase,.38,.12,'#fb7185'); seqParticle('pHisRBB',phase,.38,.12,'#fb7185');
+    if(phase<.33) vectorFromAngle(230, 60+70*phase/.33, .95); else vectorFromAngle(135,110,.9);
+  }
+  function animateAFWPW(phase,t){
+    randomWavelets(t,true,24,1);
+    const beats=[.05,.17,.29,.46,.57,.79,.92];
+    beats.forEach((b,i)=>{ let d=(phase-b+1)%1; if(d<.14){ const ap=i%2?'pAccessory':'pAccessoryR'; seqParticle(ap,d,0,.08,'#f97316',8); seqParticle(i%2?'pVT_LV':'pVT_RV',d,.06,.08,'#fb7185',7); vectorFromAngle(i%2?235:70,80+90*Math.sin(Math.PI*d/.14),.95); }});
+  }
+  function animateVTMono(phase){
+    const cyc=(phase*2.2)%1; loopParticle('pVT_LV',cyc,'#ef4444',8); loopParticle('pVT_LV',(cyc+.45)%1,'#fb7185',6); vectorFromAngle(300,135,.95); }
+  function animateVTPoly(phase){
+    const cyc=(phase*2.8)%1; const choose=Math.floor(phase*6)%2; loopParticle(choose?'pVT_LV':'pVT_RV',cyc,'#ef4444',8); loopParticle(choose?'pVT_RV':'pVT_LV',(cyc+.5)%1,'#fb7185',6); vectorFromAngle(40+240*((Math.sin(phase*2*Math.PI*2)+1)/2),120,.95); }
+  function animateVF(phase,t,fine=false){ randomWavelets(t,false,fine?28:42,fine?.45:1); const ang=(Math.sin(t*7)*180+Math.sin(t*17)*90+180)%360; vectorFromAngle(ang, fine?35+20*Math.sin(t*13):65+55*Math.sin(t*13), .55); }
+
+  function animateFrame(now){
+    if(running){
+      clearDynamic();
+      const elapsed=(now-start)/1000*speed;
+      let phase=(elapsed/2.4)%1;
+      const pat=modes[active].pattern;
+      if(pat==='normal') animateNormal(phase);
+      else if(pat==='pac') animatePAC(phase);
+      else if(pat==='af') animateAF(phase,elapsed);
+      else if(pat==='flutter') animateFlutter(phase);
+      else if(pat==='mfat') animateMFAT(phase);
+      else if(pat==='avnrtTypical') animateAVNRT(phase,false);
+      else if(pat==='avnrtAtypical') animateAVNRT(phase,true);
+      else if(pat==='avrtOrtho') animateAVRT(phase,false);
+      else if(pat==='avrtAnti') animateAVRT(phase,true);
+      else if(pat==='wpw') animateWPW(phase);
+      else if(pat==='afwpw') animateAFWPW(phase,elapsed);
+      else if(pat==='vtMono') animateVTMono(phase);
+      else if(pat==='vtPoly') animateVTPoly(phase);
+      else if(pat==='vfCoarse') animateVF(phase,elapsed,false);
+      else if(pat==='vfFine') animateVF(phase,elapsed,true);
+      updateECGCursor((elapsed/6)%1); drawVCG((elapsed/3)%1);
+    }
+    requestAnimationFrame(animateFrame);
+  }
+
+  function drawGrid(){
+    const g=p('ecgGrid'); g.innerHTML='';
+    for(let x=0;x<=720;x+=20){const l=document.createElementNS(svgNS,'line'); l.setAttribute('x1',x); l.setAttribute('x2',x); l.setAttribute('y1',0); l.setAttribute('y2',220); l.setAttribute('class','gridline '+(x%100===0?'major':'')); g.appendChild(l);}
+    for(let y=0;y<=220;y+=20){const l=document.createElementNS(svgNS,'line'); l.setAttribute('x1',0); l.setAttribute('x2',720); l.setAttribute('y1',y); l.setAttribute('y2',y); l.setAttribute('class','gridline '+(y%100===0?'major':'')); g.appendChild(l);}
+  }
+  function baseline(x){return 112;}
+  function gauss(x,mu,sig,amp){return amp*Math.exp(-0.5*Math.pow((x-mu)/sig,2));}
+  function ecgYFor(type, x){
+    // x normalized 0..1 over strip
+    let y=0;
+    const beatShape=(u,opts={})=>{
+      let v=0;
+      const pAmp=opts.pAmp??-10, qrsAmp=opts.qrsAmp??-70, wide=opts.wide??1, tAmp=opts.tAmp??-18, delta=opts.delta??0;
+      v += gauss(u,.18,.025,pAmp);
+      if(delta){ v += -delta*Math.max(0,Math.min(1,(u-.285)/.055)); }
+      v += gauss(u,.34,.010*wide,18); v += gauss(u,.365,.012*wide,qrsAmp); v += gauss(u,.392,.012*wide,30);
+      v += gauss(u,.64,.055,tAmp);
+      return v;
+    };
+    if(type==='normal'){
+      const u=(x*4)%1; y=beatShape(u);
+    } else if(type==='pac'){
+      const beats=[0.08,0.34,0.52,0.86]; let v=0; beats.forEach((b,i)=>{let u=(x-b)*4.2; if(u>=0&&u<1) v+=beatShape(u,{pAmp:i===2?8:-10});}); y=v;
+    } else if(type==='af'){
+      y = 5*Math.sin(2*Math.PI*x*38)+3*Math.sin(2*Math.PI*x*71);
+      [0.08,0.23,0.38,0.63,0.75,0.94].forEach(b=>{let u=(x-b)*8; if(u>=0&&u<1)y+=beatShape(u,{pAmp:0});});
+    } else if(type==='flutter'){
+      y = 12*(2*((x*18)%1)-1); if(((x*18)%1)>.5)y=12*(1-2*(((x*18)%1)-.5));
+      [0.12,0.37,0.62,0.87].forEach(b=>{let u=(x-b)*8; if(u>=0&&u<1)y+=beatShape(u,{pAmp:0});});
+    } else if(type==='mfat'){
+      const beats=[0.04,0.20,0.37,0.58,0.76,0.93]; beats.forEach((b,i)=>{let u=(x-b)*7.5; if(u>=0&&u<1)y+=beatShape(u,{pAmp:[-8,7,-14,4,-10,8][i]});});
+    } else if(type==='avnrtTypical'){
+      [0.02,0.20,0.38,0.56,0.74,0.92].forEach(b=>{let u=(x-b)*8; if(u>=0&&u<1)y+=beatShape(u,{pAmp:0,tAmp:-12});});
+      y += 2*Math.sin(2*Math.PI*x*6);
+    } else if(type==='avnrtAtypical'){
+      [0.02,0.22,0.42,0.62,0.82].forEach(b=>{let u=(x-b)*7; if(u>=0&&u<1){y+=beatShape(u,{pAmp:0,tAmp:-12}); y+=gauss(u,.55,.018,10);}});
+    } else if(type==='avrtOrtho'){
+      [0.02,0.22,0.42,0.62,0.82].forEach(b=>{let u=(x-b)*7; if(u>=0&&u<1){y+=beatShape(u,{pAmp:0}); y+=gauss(u,.49,.018,9);}});
+    } else if(type==='avrtAnti'){
+      [0.02,0.23,0.44,0.65,0.86].forEach(b=>{let u=(x-b)*6.5; if(u>=0&&u<1)y+=beatShape(u,{pAmp:0,qrsAmp:-58,wide:3.2,tAmp:16,delta:18});});
+    } else if(type==='wpw'){
+      const u=(x*3.7)%1; y=beatShape(u,{delta:22,wide:1.7,qrsAmp:-62});
+    } else if(type==='afwpw'){
+      y=3*Math.sin(2*Math.PI*x*44); [0.01,0.13,0.22,0.41,0.54,0.68,0.86,0.95].forEach((b,i)=>{let u=(x-b)*(8+i%3); if(u>=0&&u<1)y+=beatShape(u,{pAmp:0,qrsAmp:i%2?-82:-52,wide:2.2+(i%3),tAmp:i%2?12:-18,delta:25});});
+    } else if(type==='vtMono'){
+      [0.02,0.22,0.42,0.62,0.82].forEach(b=>{let u=(x-b)*5.8; if(u>=0&&u<1)y+=beatShape(u,{pAmp:0,qrsAmp:-86,wide:3.6,tAmp:20});});
+    } else if(type==='vtPoly'){
+      y = 70*Math.sin(2*Math.PI*x*7.6)*Math.sin(2*Math.PI*x*1.05);
+      y += 22*Math.sin(2*Math.PI*x*15);
+    } else if(type==='vfCoarse'){
+      y = 38*Math.sin(2*Math.PI*x*10+1.8*Math.sin(2*Math.PI*x*3))+25*Math.sin(2*Math.PI*x*18.5);
+    } else if(type==='vfFine'){
+      y = 12*Math.sin(2*Math.PI*x*15)+8*Math.sin(2*Math.PI*x*33)+5*Math.sin(2*Math.PI*x*61);
+    }
+    return baseline(x)+y;
+  }
+  function drawECG(){
+    const type=modes[active].ecg; let d='';
+    for(let i=0;i<=720;i++){
+      const x=i/720; const y=ecgYFor(type,x); d+=(i?' L ':'M ')+i.toFixed(1)+' '+y.toFixed(1);
+    }
+    ecgPath.setAttribute('d',d);
+    ecgCaption.textContent = modes[active].label + ' — schematic lead II-like strip';
+  }
+  function updateECGCursor(t){ const x=720*t; ecgCursor.setAttribute('x1',x); ecgCursor.setAttribute('x2',x); }
+
+  function loopPath(points){ return 'M '+points.map(pt=>pt[0].toFixed(1)+' '+pt[1].toFixed(1)).join(' C '); }
+  function makeEllipse(cx,cy,rx,ry,rot=0,n=90,chaos=0){
+    const pts=[]; const r=rot*Math.PI/180;
+    for(let i=0;i<=n;i++){
+      const a=2*Math.PI*i/n; let x=rx*Math.cos(a), y=ry*Math.sin(a); if(chaos){x+=chaos*Math.sin(i*4.9); y+=chaos*Math.cos(i*3.7)}
+      const X=cx+x*Math.cos(r)-y*Math.sin(r); const Y=cy+x*Math.sin(r)+y*Math.cos(r); pts.push([X,Y]);
+    } return pts;
+  }
+  function drawVCG(t){
+    const type=modes[active].vcg; let pts=[], pts2=[];
+    if(type==='normal'){pts=makeEllipse(205,155,86,37,-28); pts2=makeEllipse(155,112,24,10,25);} 
+    else if(type==='pac'){pts=makeEllipse(205,155,82,36,-22); pts2=makeEllipse(145,128,35,12,-60);} 
+    else if(type==='af'){pts=makeEllipse(205,155,80,35,-25); pts2=makeEllipse(175,130,45,24,10,18);} 
+    else if(type==='flutter'){pts=makeEllipse(178,122,48,24,0); pts2=makeEllipse(205,155,78,33,-25);} 
+    else if(type==='mfat'){pts=makeEllipse(204,155,75,35,-25); pts2=makeEllipse(170,125,44,20,80,8);} 
+    else if(type==='nodal'){pts=makeEllipse(204,155,80,34,-25); pts2=makeEllipse(176,132,15,9,0);} 
+    else if(type==='nodalReverse'){pts=makeEllipse(204,155,76,32,-25); pts2=makeEllipse(188,128,20,8,180);} 
+    else if(type==='avrtOrtho'){pts=makeEllipse(204,155,80,34,-25); pts2=makeEllipse(183,127,28,10,40);} 
+    else if(type==='preexcited'){pts=makeEllipse(145,169,95,48,35); pts2=makeEllipse(110,160,34,12,35);} 
+    else if(type==='afwpw'){pts=makeEllipse(170,160,110,62,20,90,10); pts2=makeEllipse(190,128,58,26,80,18);} 
+    else if(type==='vtMono'){pts=makeEllipse(126,190,105,45,42);} 
+    else if(type==='vtPoly'){pts=makeEllipse(180,150,115,62,80,90,14); pts2=makeEllipse(180,150,105,50,-45,90,12);} 
+    else if(type==='vf'){pts=makeEllipse(180,140,110,75,0,120,38); pts2=makeEllipse(180,140,80,60,90,120,25);} 
+    else if(type==='vfFine'){pts=makeEllipse(180,140,45,35,0,120,18); pts2=makeEllipse(180,140,35,28,90,120,15);} 
+    vcgLoop.setAttribute('d','M '+pts.map((pt,i)=>`${pt[0].toFixed(1)} ${pt[1].toFixed(1)}`).join(' L '));
+    vcgLoop2.setAttribute('d',pts2.length?'M '+pts2.map(pt=>`${pt[0].toFixed(1)} ${pt[1].toFixed(1)}`).join(' L '):'');
+    const all=pts.length?pts: [[180,140]]; const idx=Math.floor(t*(all.length-1)); vcgDot.setAttribute('cx',all[idx][0]); vcgDot.setAttribute('cy',all[idx][1]);
+  }
+
+  playBtn.addEventListener('click',()=>{ running=!running; playBtn.textContent=running?'Pause':'Play'; if(running) start=performance.now(); });
+  resetBtn.addEventListener('click',()=>{ start=performance.now(); clearDynamic(); drawECG(); drawVCG(0); });
+  speedSlider.addEventListener('input',()=>{ speed=parseFloat(speedSlider.value); speedVal.textContent=speed.toFixed(2)+'×'; });
+
+  makeButtons(); updateText(); setPathEmphasis(); drawGrid(); drawECG(); drawVCG(0); requestAnimationFrame(animateFrame);
+})();
+</script>
+</body>
+</html>
