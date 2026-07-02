@@ -79,7 +79,7 @@ python3 -m http.server 8000
 Then open:
 
 ```text
-http://localhost:8000/heart_ep_teaching_tool.html
+http://localhost:8000/index.html
 ```
 
 
